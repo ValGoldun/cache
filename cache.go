@@ -46,7 +46,7 @@ func (c *Cache[K, V]) Get(key K) (V, bool) {
 	}
 
 	if !e.deadline.IsZero() && time.Now().After(e.deadline) {
-		delete(c.data, key)
+		c.Delete(key)
 
 		return e.value, false
 	}

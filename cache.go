@@ -6,8 +6,9 @@ import (
 )
 
 type Cache[K comparable, V any] struct {
-	data map[K]entity[V]
-	ttl  time.Duration
+	data      map[K]entity[V]
+	ttl       time.Duration
+	scheduler *scheduler[K]
 	sync.RWMutex
 }
 
@@ -17,9 +18,16 @@ type entity[V any] struct {
 }
 
 func New[K comparable, V any]() *Cache[K, V] {
-	return &Cache[K, V]{
+	c := &Cache[K, V]{
 		data: make(map[K]entity[V]),
+		scheduler: &scheduler[K]{
+			queue: make(map[K]cleaner),
+		},
 	}
+
+	go c.scheduler.schedule()
+
+	return c
 }
 
 func (c *Cache[K, V]) Set(key K, value V) {
@@ -31,6 +39,8 @@ func (c *Cache[K, V]) Set(key K, value V) {
 		deadline = time.Time{}
 	} else {
 		deadline = time.Now().Add(c.ttl)
+
+		c.scheduler.add(key, c.newCleaner(key, deadline))
 	}
 
 	c.data[key] = entity[V]{value: value, deadline: deadline}

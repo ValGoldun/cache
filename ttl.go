@@ -16,7 +16,7 @@ func (c *Cache[K, V]) SetWithTTL(key K, value V, ttl time.Duration) {
 
 	var deadline = time.Now().Add(ttl)
 
-	c.scheduler.add(key, c.newGC(key, deadline))
+	c.scheduler.add(key, c.newCleaner(key, deadline))
 
 	c.data[key] = entity[V]{value: value, deadline: deadline}
 }
